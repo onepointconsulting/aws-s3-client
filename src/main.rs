@@ -1,5 +1,7 @@
 extern crate glob;
+extern crate alloc;
 
+use std::collections::BTreeMap;
 use std::env;
 use std::fmt::{Debug, Pointer};
 use std::fs::File;
@@ -17,11 +19,13 @@ use fancy_regex::Regex;
 
 use crate::cli::{Cli, Operation};
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
+use crate::result_sorter::ResultSorter;
 
 use self::glob::glob;
 
 mod cli;
 mod output_printer;
+mod result_sorter;
 
 #[tokio::main]
 async fn main() {
@@ -149,11 +153,16 @@ async fn list_objects(client: &Client,
         }
     };
     let re = &Regex::new(regex).expect("Invalid regex");
+    let mut result_sorter = ResultSorter { results: BTreeMap::new() };
     for obj in objects.contents().unwrap_or_default() {
         let key_str = obj.key().unwrap();
         if find_regex(key_str, re) > -1 {
-            output_printer.output_with_stats(obj);
+            result_sorter.sort_results(obj.clone());
         }
+    }
+
+    for obj in result_sorter.get_sorted().iter() {
+        output_printer.output_with_stats(obj);
     }
 
     Ok(())
