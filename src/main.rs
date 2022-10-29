@@ -152,8 +152,14 @@ async fn list_objects(client: &Client,
             ".+"
         }
     };
+    let asc = match &args.asc {
+        Some(asc_bool) => {
+            if(*asc_bool) { 1 } else { -1 }
+        }
+        None => 1
+    };
     let re = &Regex::new(regex).expect("Invalid regex");
-    let mut result_sorter = ResultSorter { results: BTreeMap::new() };
+    let mut result_sorter = ResultSorter { results: BTreeMap::new(), asc };
     for obj in objects.contents().unwrap_or_default() {
         let key_str = obj.key().unwrap();
         if find_regex(key_str, re) > -1 {

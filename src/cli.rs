@@ -45,4 +45,8 @@ pub(crate) struct Cli {
     #[clap(short, long, value_name = ",")]
     pub(crate) sep: Option<String>,
 
+    /// Used to sort either in ascending or descending order.
+    #[clap(short, long)]
+    pub(crate) asc: Option<bool>,
+
 }

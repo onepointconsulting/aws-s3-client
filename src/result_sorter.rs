@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use aws_sdk_s3::model::Object;
 
 pub(crate) struct ResultSorter {
-    pub(crate) results: BTreeMap<i64, Object>
+    pub(crate) results: BTreeMap<i64, Object>,
+    pub(crate) asc: i64
 }
 
 impl ResultSorter {
@@ -10,7 +11,7 @@ impl ResultSorter {
         let last_modified = obj.last_modified();
         match last_modified {
             Some(dt) => {
-                self.results.insert(dt.secs(), obj);
+                self.results.insert(dt.secs() * self.asc, obj);
             }
             None => {}
         }
