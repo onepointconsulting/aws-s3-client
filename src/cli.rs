@@ -4,7 +4,8 @@ use clap::{ArgEnum, Parser};
 #[clap(rename_all = "kebab_case")]
 pub(crate) enum Operation {
     List,
-    Upload
+    Upload,
+    Download
 }
 
 /**
@@ -34,6 +35,7 @@ pub(crate) struct Cli {
     pub(crate) bucket: String,
 
     /// The key prefix in S3 (something like the target folder)
+    /// This is also the target folder for download
     #[clap(short, long)]
     pub(crate) target_folder: Option<String>,
 

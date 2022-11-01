@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use aws_sdk_s3::model::Object;
 
+#[derive(Clone)]
 pub(crate) struct ResultSorter {
     pub(crate) results: BTreeMap<i64, Object>,
     pub(crate) asc: i64

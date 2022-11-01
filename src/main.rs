@@ -1,23 +1,22 @@
-extern crate glob;
 extern crate alloc;
+extern crate glob;
 
+use alloc::rc::Rc;
 use std::collections::BTreeMap;
 use std::env;
-use std::fmt::{Debug, Pointer};
-use std::fs::File;
-use std::path::Path;
-use std::time::SystemTime;
+use std::future::Future;
+use std::path::{Path, PathBuf};
+use std::process::Output;
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{Client, Error, Region};
-use aws_sdk_s3::types::DateTime;
+use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
-use chrono::NaiveDateTime;
-use clap::ErrorKind::Format;
 use clap::Parser;
 use fancy_regex::Regex;
 
 use crate::cli::{Cli, Operation};
+use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
 
@@ -26,6 +25,7 @@ use self::glob::glob;
 mod cli;
 mod output_printer;
 mod result_sorter;
+mod file_download;
 
 #[tokio::main]
 async fn main() {
@@ -45,11 +45,18 @@ async fn main() {
         Some(s) => s,
         None => &default_sep
     };
-    let mut output_printer = DefaultPrinter { sep: sep.to_string() };
+    let output_printer = DefaultPrinter { sep: sep.to_string() };
 
     match mode {
         Operation::List => {
-            let res = list_objects(&client, &bucket, &args, &mut output_printer).await;
+            async fn process_obj(_: &ClientBucket, obj: Object, output_printer: & dyn OutputPrinter) {
+                output_printer.output_with_stats(&obj);
+            }
+            let res = list_objects(&ClientBucket {
+                client,
+                bucket_name: bucket,
+                args,
+            }, & output_printer, process_obj).await;
             match res {
                 Ok(_) => {}
                 Err(e) => {
@@ -61,14 +68,35 @@ async fn main() {
             let glob_pattern = &args.glob_pattern;
             match glob_pattern {
                 Some(pattern) => {
-                    list_files(pattern, &client, &args).await;
+                    upload_files(pattern, &client, &args).await;
                 }
                 None => {
                     println!("Error: please enter a glob pattern, like e.g: *.csv");
                 }
             }
         }
+        Operation::Download => {
+            let client_bucket = &ClientBucket {
+                client,
+                bucket_name: bucket,
+                args,
+            };
+            async fn process_obj(client_bucket: &ClientBucket,
+                           obj: Object,
+                           output_printer: &dyn OutputPrinter) {
+                download_object(client_bucket, obj.key().unwrap(), output_printer).await
+            }
+            let res = list_objects(client_bucket,
+                                   &output_printer,
+                                   process_obj).await;
+        }
     }
+}
+
+pub(crate) struct ClientBucket {
+    pub(crate) client: Client,
+    pub(crate) bucket_name: String,
+    pub(crate) args: Cli,
 }
 
 fn find_regex(content: &str, search_filter: &Regex) -> i32 {
@@ -85,7 +113,7 @@ fn find_regex(content: &str, search_filter: &Regex) -> i32 {
     return -1;
 }
 
-async fn list_files(glob_pattern: &String, client: &Client, args: &Cli) {
+async fn upload_files(glob_pattern: &String, client: &Client, args: &Cli) {
     let expected = format!("Failed to read glob pattern {}", glob_pattern);
     let target_folder = &args.target_folder;
     let bucket_name = &args.bucket;
@@ -116,7 +144,6 @@ async fn list_files(glob_pattern: &String, client: &Client, args: &Cli) {
             println!("Please specify the target folder");
         }
     }
-
 }
 
 pub async fn upload_object(
@@ -138,13 +165,18 @@ pub async fn upload_object(
     Ok(())
 }
 
-async fn list_objects(client: &Client,
-                      bucket_name: &str,
-                      args: &Cli,
-                      output_printer: &mut dyn OutputPrinter) -> Result<(), Error> {
+async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
+                              output_printer: &'a dyn OutputPrinter,
+                              process_obj: F) -> Result<(), Error>
+    where
+        F: FnOnce(&'a ClientBucket, Object, &'a dyn OutputPrinter) -> Fut + std::marker::Copy,
+        Fut: Future<Output=()>
+{
+    let client = &client_bucket.client;
+    let bucket_name = &client_bucket.bucket_name;
     let objects = client.list_objects_v2().bucket(bucket_name).send().await?;
     println!("Objects in bucket:");
-    let regex = match &args.list_regex_pattern {
+    let regex = match &client_bucket.args.list_regex_pattern {
         Some(re) => {
             re
         }
@@ -152,14 +184,14 @@ async fn list_objects(client: &Client,
             ".+"
         }
     };
-    let asc = match &args.asc {
+    let asc = match &client_bucket.args.asc {
         Some(asc_bool) => {
-            if(*asc_bool) { 1 } else { -1 }
+            if *asc_bool { 1 } else { -1 }
         }
         None => 1
     };
-    let re = &Regex::new(regex).expect("Invalid regex");
     let mut result_sorter = ResultSorter { results: BTreeMap::new(), asc };
+    let re = &Regex::new(regex).expect("Invalid regex");
     for obj in objects.contents().unwrap_or_default() {
         let key_str = obj.key().unwrap();
         if find_regex(key_str, re) > -1 {
@@ -168,7 +200,7 @@ async fn list_objects(client: &Client,
     }
 
     for obj in result_sorter.get_sorted().iter() {
-        output_printer.output_with_stats(obj);
+        process_obj(client_bucket, obj.clone(), output_printer).await;
     }
 
     Ok(())
@@ -182,5 +214,5 @@ async fn setup(args: &Cli) -> (Region, Client) {
     let shared_config = aws_config::from_env().region(region_provider).load().await;
 
     let client = Client::new(&shared_config);
-    return (region, client)
+    return (region, client);
 }
