@@ -1,9 +1,6 @@
 use std::fs;
 use tokio::fs::File;
-use std::io::{BufReader, Write};
 use std::path::PathBuf;
-use aws_sdk_s3::{Client};
-use aws_sdk_s3::output::GetObjectOutput;
 use tokio::io::AsyncWriteExt;
 use crate::{ClientBucket, OutputPrinter};
 
@@ -22,11 +19,11 @@ pub(crate) async fn download_object(client_bucket: &ClientBucket,
         .await;
     match resp {
         Ok(obj) => {
-            let mut stream = obj.body.collect().await;
+            let stream = obj.body.collect().await;
             let splits = key.split("/");
             let last_split_option = splits.last();
             let last = last_split_option.unwrap();
-            if (last.len() > 0) {
+            if last.len() > 0 {
                 let new_path = path.join(PathBuf::from(last));
                 if !path.exists() {
                     fs::create_dir_all(path.clone())

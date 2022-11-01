@@ -1,12 +1,10 @@
 extern crate alloc;
 extern crate glob;
 
-use alloc::rc::Rc;
 use std::collections::BTreeMap;
 use std::env;
 use std::future::Future;
-use std::path::{Path, PathBuf};
-use std::process::Output;
+use std::path::{Path};
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{Client, Error, Region};
@@ -86,7 +84,7 @@ async fn main() {
                            output_printer: &dyn OutputPrinter) {
                 download_object(client_bucket, obj.key().unwrap(), output_printer).await
             }
-            let res = list_objects(client_bucket,
+            let _ = list_objects(client_bucket,
                                    &output_printer,
                                    process_obj).await;
         }
