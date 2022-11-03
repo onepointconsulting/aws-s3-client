@@ -5,7 +5,8 @@ use clap::{ArgEnum, Parser};
 pub(crate) enum Operation {
     List,
     Upload,
-    Download
+    Download,
+    Delete
 }
 
 /**

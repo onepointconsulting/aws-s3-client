@@ -14,6 +14,8 @@ use clap::Parser;
 use fancy_regex::Regex;
 
 use crate::cli::{Cli, Operation};
+use crate::client_bucket::ClientBucket;
+use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
@@ -24,6 +26,8 @@ mod cli;
 mod output_printer;
 mod result_sorter;
 mod file_download;
+mod client_bucket;
+mod file_delete;
 
 #[tokio::main]
 async fn main() {
@@ -47,14 +51,11 @@ async fn main() {
 
     match mode {
         Operation::List => {
-            async fn process_obj(_: &ClientBucket, obj: Object, output_printer: & dyn OutputPrinter) {
+            async fn process_obj(_: &ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) {
                 output_printer.output_with_stats(&obj);
             }
-            let res = list_objects(&ClientBucket {
-                client,
-                bucket_name: bucket,
-                args,
-            }, & output_printer, process_obj).await;
+            let client_bucket = &ClientBucket::new(client, bucket, args);
+            let res = list_objects(client_bucket, &output_printer, process_obj).await;
             match res {
                 Ok(_) => {}
                 Err(e) => {
@@ -63,10 +64,11 @@ async fn main() {
             }
         }
         Operation::Upload => {
-            let glob_pattern = &args.glob_pattern;
+            let glob_pattern = &args.glob_pattern.clone();
+            let client_bucket = &ClientBucket::new(client, bucket, args);
             match glob_pattern {
                 Some(pattern) => {
-                    upload_files(pattern, &client, &args).await;
+                    upload_files(pattern, client_bucket, &output_printer).await;
                 }
                 None => {
                     println!("Error: please enter a glob pattern, like e.g: *.csv");
@@ -74,27 +76,28 @@ async fn main() {
             }
         }
         Operation::Download => {
-            let client_bucket = &ClientBucket {
-                client,
-                bucket_name: bucket,
-                args,
-            };
+            let client_bucket = &ClientBucket::new(client, bucket, args);
             async fn process_obj(client_bucket: &ClientBucket,
-                           obj: Object,
-                           output_printer: &dyn OutputPrinter) {
+                                 obj: Object,
+                                 output_printer: &dyn OutputPrinter) {
                 download_object(client_bucket, obj.key().unwrap(), output_printer).await
             }
             let _ = list_objects(client_bucket,
-                                   &output_printer,
-                                   process_obj).await;
+                                 &output_printer,
+                                 process_obj).await;
+        }
+        Operation::Delete => {
+            let client_bucket = &ClientBucket::new(client, bucket, args);
+            async fn process_obj(client_bucket: &ClientBucket,
+                                 obj: Object,
+                                 output_printer: &dyn OutputPrinter) {
+                delete_object(client_bucket, obj.key().unwrap(), output_printer).await
+            }
+            let _ = list_objects(client_bucket,
+                                 &output_printer,
+                                 process_obj).await;
         }
     }
-}
-
-pub(crate) struct ClientBucket {
-    pub(crate) client: Client,
-    pub(crate) bucket_name: String,
-    pub(crate) args: Cli,
 }
 
 fn find_regex(content: &str, search_filter: &Regex) -> i32 {
@@ -111,10 +114,10 @@ fn find_regex(content: &str, search_filter: &Regex) -> i32 {
     return -1;
 }
 
-async fn upload_files(glob_pattern: &String, client: &Client, args: &Cli) {
+async fn upload_files(glob_pattern: &String, client_bucket: &ClientBucket, output_printer: & dyn OutputPrinter) {
     let expected = format!("Failed to read glob pattern {}", glob_pattern);
-    let target_folder = &args.target_folder;
-    let bucket_name = &args.bucket;
+    let target_folder = &client_bucket.args.target_folder;
+    let bucket_name = &client_bucket.bucket_name;
     match target_folder {
         Some(tf) => {
             for entry in glob(glob_pattern).expect(&expected) {
@@ -123,14 +126,16 @@ async fn upload_files(glob_pattern: &String, client: &Client, args: &Cli) {
                         let file_name = path.file_name().unwrap();
                         let key = format!("{}/{}", tf, file_name.to_str().unwrap());
                         let file_str = path.to_str().unwrap();
-                        println!("Uploading {} to {}", file_str, key);
-                        let res = upload_object(client, bucket_name.as_str(), file_str, key.as_str()).await;
+                        output_printer.ok_output(format!("Uploading {} to {}", file_str, key).as_str());
+                        let res = upload_object(&client_bucket.client,
+                                                bucket_name.as_str(),
+                                                file_str, key.as_str()).await;
                         match res {
                             Ok(_) => {
-                                println!("Upload successful: {}", key);
+                                output_printer.ok_output(format!("Upload successful: {}", key).as_str());
                             }
                             Err(e) => {
-                                println!("Could not upload: {}", e);
+                                output_printer.err_output(format!("Could not upload: {}", e).as_str());
                             }
                         }
                     }
@@ -139,7 +144,7 @@ async fn upload_files(glob_pattern: &String, client: &Client, args: &Cli) {
             }
         }
         None => {
-            println!("Please specify the target folder");
+            output_printer.err_output("Please specify the target folder");
         }
     }
 }
@@ -164,8 +169,8 @@ pub async fn upload_object(
 }
 
 async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
-                              output_printer: &'a dyn OutputPrinter,
-                              process_obj: F) -> Result<(), Error>
+                                  output_printer: &'a dyn OutputPrinter,
+                                  process_obj: F) -> Result<(), Error>
     where
         F: FnOnce(&'a ClientBucket, Object, &'a dyn OutputPrinter) -> Fut + std::marker::Copy,
         Fut: Future<Output=()>

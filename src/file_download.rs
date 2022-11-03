@@ -1,8 +1,11 @@
 use std::fs;
-use tokio::fs::File;
 use std::path::PathBuf;
+
+use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
-use crate::{ClientBucket, OutputPrinter};
+
+use crate::OutputPrinter;
+use crate::client_bucket::ClientBucket;
 
 pub(crate) async fn download_object(client_bucket: &ClientBucket,
                                     key: &str,
