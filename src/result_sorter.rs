@@ -1,25 +1,28 @@
-use std::collections::BTreeMap;
+use std::cmp::Ordering;
+
 use aws_sdk_s3::model::Object;
 
 #[derive(Clone)]
 pub(crate) struct ResultSorter {
-    pub(crate) results: BTreeMap<i64, Object>,
+    pub(crate) results: Vec<Object>,
     pub(crate) asc: i64
 }
 
 impl ResultSorter {
     pub(crate) fn sort_results(&mut self, obj: Object) {
-        let last_modified = obj.last_modified();
-        match last_modified {
-            Some(dt) => {
-                self.results.insert(dt.secs() * self.asc, obj);
-            }
-            None => {}
-        }
+        self.results.push(obj);
     }
 
     pub(crate) fn get_sorted(&mut self) -> Vec<Object> {
-        let values: Vec<Object> = self.results.clone().into_values().collect();
+        let sorter = match self.asc {
+            1 => |a: &Object, b: &Object|
+                    a.last_modified().unwrap().secs().cmp(&b.last_modified().unwrap().secs()),
+            -1 => |a: &Object, b: &Object|
+                    b.last_modified().unwrap().secs().cmp(&a.last_modified().unwrap().secs()),
+            _ => |a: &Object, b: &Object| Ordering::Equal
+        };
+        self.results.sort_by(sorter);
+        let values: Vec<Object> = self.results.clone();
         values
     }
 }

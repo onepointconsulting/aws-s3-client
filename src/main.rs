@@ -1,9 +1,8 @@
 extern crate alloc;
 extern crate glob;
+extern crate core;
 
-use std::collections::BTreeMap;
 use std::env;
-use std::future::Future;
 use std::path::{Path};
 
 use aws_config::meta::region::RegionProviderChain;
@@ -11,7 +10,6 @@ use aws_sdk_s3::{Client, Error, Region};
 use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
-use fancy_regex::Regex;
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
@@ -19,6 +17,7 @@ use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
+use crate::list_objects::list_objects;
 
 use self::glob::glob;
 
@@ -28,6 +27,7 @@ mod result_sorter;
 mod file_download;
 mod client_bucket;
 mod file_delete;
+mod list_objects;
 
 #[tokio::main]
 async fn main() {
@@ -100,20 +100,6 @@ async fn main() {
     }
 }
 
-fn find_regex(content: &str, search_filter: &Regex) -> i32 {
-    let result = search_filter.find(content);
-    if result.is_ok() {
-        let match_option = result.unwrap();
-        match match_option {
-            Some(m) => {
-                return m.start() as i32;
-            }
-            None => {}
-        }
-    }
-    return -1;
-}
-
 async fn upload_files(glob_pattern: &String, client_bucket: &ClientBucket, output_printer: & dyn OutputPrinter) {
     let expected = format!("Failed to read glob pattern {}", glob_pattern);
     let target_folder = &client_bucket.args.target_folder;
@@ -165,47 +151,6 @@ pub async fn upload_object(
         .await?;
 
     println!("Uploaded file: {}", file_name);
-    Ok(())
-}
-
-async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
-                                  output_printer: &'a dyn OutputPrinter,
-                                  process_obj: F) -> Result<(), Error>
-    where
-        F: FnOnce(&'a ClientBucket, Object, &'a dyn OutputPrinter) -> Fut + std::marker::Copy,
-        Fut: Future<Output=()>
-{
-    let client = &client_bucket.client;
-    let bucket_name = &client_bucket.bucket_name;
-    let objects = client.list_objects_v2().bucket(bucket_name).send().await?;
-    println!("Objects in bucket:");
-    let regex = match &client_bucket.args.list_regex_pattern {
-        Some(re) => {
-            re
-        }
-        None => {
-            ".+"
-        }
-    };
-    let asc = match &client_bucket.args.asc {
-        Some(asc_bool) => {
-            if *asc_bool { 1 } else { -1 }
-        }
-        None => 1
-    };
-    let mut result_sorter = ResultSorter { results: BTreeMap::new(), asc };
-    let re = &Regex::new(regex).expect("Invalid regex");
-    for obj in objects.contents().unwrap_or_default() {
-        let key_str = obj.key().unwrap();
-        if find_regex(key_str, re) > -1 {
-            result_sorter.sort_results(obj.clone());
-        }
-    }
-
-    for obj in result_sorter.get_sorted().iter() {
-        process_obj(client_bucket, obj.clone(), output_printer).await;
-    }
-
     Ok(())
 }
 
