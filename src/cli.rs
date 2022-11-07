@@ -6,7 +6,8 @@ pub(crate) enum Operation {
     List,
     Upload,
     Download,
-    Delete
+    Delete,
+    CopySingle
 }
 
 /**
@@ -51,5 +52,14 @@ pub(crate) struct Cli {
     /// Used to sort either in ascending or descending order.
     #[clap(short, long)]
     pub(crate) asc: Option<bool>,
+
+    /// Source key for copy or move operations
+    #[clap(long)]
+    pub(crate) source_key: Option<String>,
+
+    /// Target key for copy or move operations
+    #[clap(long)]
+    pub(crate) target_key: Option<String>
+
 
 }

@@ -13,6 +13,7 @@ use clap::Parser;
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
+use crate::copy_operations::copy_object;
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
@@ -28,6 +29,7 @@ mod file_download;
 mod client_bucket;
 mod file_delete;
 mod list_objects;
+mod copy_operations;
 
 #[tokio::main]
 async fn main() {
@@ -96,6 +98,10 @@ async fn main() {
             let _ = list_objects(client_bucket,
                                  &output_printer,
                                  process_obj).await;
+        }
+        Operation::CopySingle => {
+            let client_bucket = &ClientBucket::new(client, bucket, args);
+            let _ = copy_object(client_bucket, &output_printer).await;
         }
     }
 }

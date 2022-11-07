@@ -54,7 +54,7 @@ OPTIONS:
     -m, --mode <MODE>
             The operation mode
 
-            [possible values: list, upload, download, delete]
+            [possible values: list, upload, download, delete, copy-single]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -62,9 +62,15 @@ OPTIONS:
     -s, --sep <,>
             The separator used by the default printer
 
+        --source-key <SOURCE_KEY>
+            Source key for copy or move operations
+
     -t, --target-folder <TARGET_FOLDER>
             The key prefix in S3 (something like the target folder) This is also the target folder
             for download
+
+        --target-key <TARGET_KEY>
+            Target key for copy or move operations
 ```
 
 ## Usage Examples

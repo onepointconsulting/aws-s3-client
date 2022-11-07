@@ -19,7 +19,7 @@ impl ResultSorter {
                     a.last_modified().unwrap().secs().cmp(&b.last_modified().unwrap().secs()),
             -1 => |a: &Object, b: &Object|
                     b.last_modified().unwrap().secs().cmp(&a.last_modified().unwrap().secs()),
-            _ => |a: &Object, b: &Object| Ordering::Equal
+            _ => |_: &Object, _: &Object| Ordering::Equal
         };
         self.results.sort_by(sorter);
         let values: Vec<Object> = self.results.clone();
