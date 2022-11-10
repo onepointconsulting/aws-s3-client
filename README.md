@@ -4,10 +4,12 @@
 
 Simple binary programme list AWS files with regular expressions that can perform the following operations on AWS S3:
 
-- List files
+- List files using regular expression filters
 - Upload files
 - Download files
 - Delete files
+- Copy single file
+- Move single file
 
 ## Examples
 
@@ -54,7 +56,7 @@ OPTIONS:
     -m, --mode <MODE>
             The operation mode
 
-            [possible values: list, upload, download, delete, copy-single]
+            [possible values: list, upload, download, delete, copy-single, move-single]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'

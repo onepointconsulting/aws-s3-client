@@ -1,5 +1,5 @@
 use aws_sdk_s3::Error;
-use crate::{ClientBucket, OutputPrinter};
+use crate::{ClientBucket, delete_object, OutputPrinter};
 
 pub(crate) async fn copy_object(
     client_bucket: &ClientBucket,
@@ -41,5 +41,23 @@ pub(crate) async fn copy_object(
 
     output_printer.ok_output(format!("Successfully copied {} to {}", source_key, target_key).as_str());
 
+    Ok(())
+}
+
+pub(crate) async fn move_object(
+    client_bucket: &ClientBucket,
+    output_printer: &dyn OutputPrinter
+) -> Result<(), Error> {
+    let args = &client_bucket.args;
+    match copy_object(client_bucket, output_printer).await {
+        Result::Ok(()) => {
+            let source_key = &args.source_key.as_ref().unwrap();
+            delete_object(&client_bucket, source_key, output_printer).await;
+        }
+        Result::Err(e) => {
+            let source_key = &args.source_key.as_ref().unwrap();
+            output_printer.err_output(format!("Failed to copy {}: {:?}", source_key, e).as_str())
+        }
+    }
     Ok(())
 }

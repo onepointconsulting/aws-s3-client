@@ -7,7 +7,8 @@ pub(crate) enum Operation {
     Upload,
     Download,
     Delete,
-    CopySingle
+    CopySingle,
+    MoveSingle
 }
 
 /**
@@ -17,7 +18,7 @@ Example 1: aws_client.exe --region "eu-central-1" --mode list --bucket mdm-eu-de
 
 Example 2: aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-prod-republish -g data\*.txt --target-folder folder_test_gil
  */
-#[derive(Parser)]
+#[derive(Parser,Clone)]
 pub(crate) struct Cli {
 
     /// The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'

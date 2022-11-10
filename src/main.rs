@@ -13,7 +13,7 @@ use clap::Parser;
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
-use crate::copy_operations::copy_object;
+use crate::copy_operations::{copy_object, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
@@ -51,12 +51,13 @@ async fn main() {
     };
     let output_printer = DefaultPrinter { sep: sep.to_string() };
 
+    let client_bucket = &ClientBucket::new(client, bucket, args.clone());
     match mode {
         Operation::List => {
             async fn process_obj(_: &ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) {
                 output_printer.output_with_stats(&obj);
             }
-            let client_bucket = &ClientBucket::new(client, bucket, args);
+
             let res = list_objects(client_bucket, &output_printer, process_obj).await;
             match res {
                 Ok(_) => {}
@@ -67,7 +68,6 @@ async fn main() {
         }
         Operation::Upload => {
             let glob_pattern = &args.glob_pattern.clone();
-            let client_bucket = &ClientBucket::new(client, bucket, args);
             match glob_pattern {
                 Some(pattern) => {
                     upload_files(pattern, client_bucket, &output_printer).await;
@@ -78,7 +78,6 @@ async fn main() {
             }
         }
         Operation::Download => {
-            let client_bucket = &ClientBucket::new(client, bucket, args);
             async fn process_obj(client_bucket: &ClientBucket,
                                  obj: Object,
                                  output_printer: &dyn OutputPrinter) {
@@ -89,7 +88,6 @@ async fn main() {
                                  process_obj).await;
         }
         Operation::Delete => {
-            let client_bucket = &ClientBucket::new(client, bucket, args);
             async fn process_obj(client_bucket: &ClientBucket,
                                  obj: Object,
                                  output_printer: &dyn OutputPrinter) {
@@ -100,8 +98,10 @@ async fn main() {
                                  process_obj).await;
         }
         Operation::CopySingle => {
-            let client_bucket = &ClientBucket::new(client, bucket, args);
             let _ = copy_object(client_bucket, &output_printer).await;
+        }
+        Operation::MoveSingle => {
+            let _ = move_object(client_bucket, &output_printer).await;
         }
     }
 }
