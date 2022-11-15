@@ -13,7 +13,7 @@ use clap::Parser;
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
-use crate::copy_operations::{copy_object, move_object};
+use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
@@ -96,6 +96,11 @@ async fn main() {
             let _ = list_objects(client_bucket,
                                  &output_printer,
                                  process_obj).await;
+        }
+        Operation::CopyMultiple => {
+            let _ = list_objects(client_bucket,
+                                 &output_printer,
+                                 copy_multiple_process_obj).await;
         }
         Operation::CopySingle => {
             let _ = copy_object(client_bucket, &output_printer).await;

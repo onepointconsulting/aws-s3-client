@@ -8,6 +8,7 @@ Simple binary programme list AWS files with regular expressions that can perform
 - Upload files
 - Download files
 - Delete files
+- Copy multiple files to target folder
 - Copy single file
 - Move single file
 
@@ -56,7 +57,8 @@ OPTIONS:
     -m, --mode <MODE>
             The operation mode
 
-            [possible values: list, upload, download, delete, copy-single, move-single]
+            [possible values: list, upload, download, delete, copy-single, move-single,
+            copy-multiple]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -73,6 +75,7 @@ OPTIONS:
 
         --target-key <TARGET_KEY>
             Target key for copy or move operations
+
 ```
 
 ## Usage Examples
@@ -93,4 +96,10 @@ aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-prod-republis
 
 ```powershell
 aws_client.exe --region eu-central-1 --mode delete --bucket mdm-eu-prod-republish --list-regex-pattern ^.*folder_test_gil.+
+```
+
+- Copy multiple files
+
+```powershell
+aws_client.exe --region eu-central-1 --mode copy-multiple --bucket mdm-eu-prod-republish -l ^.*folder3.+ --target-key folder3_copy
 ```

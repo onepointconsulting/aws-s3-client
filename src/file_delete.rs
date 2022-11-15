@@ -22,7 +22,7 @@ pub(crate) async fn delete_object(client_bucket: &ClientBucket,
         .await;
 
     match delete_res {
-        Ok(d) => {
+        Ok(_) => {
             output_printer.ok_output(format!("Deleted successfully {}",
                                              key.to_string()).as_str());
         }

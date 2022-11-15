@@ -8,7 +8,8 @@ pub(crate) enum Operation {
     Download,
     Delete,
     CopySingle,
-    MoveSingle
+    MoveSingle,
+    CopyMultiple
 }
 
 /**
