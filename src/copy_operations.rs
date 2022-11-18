@@ -4,7 +4,7 @@ use crate::{Cli, ClientBucket, delete_object, OutputPrinter};
 
 pub(crate) async fn copy_object(
     client_bucket: &ClientBucket,
-    output_printer: &dyn OutputPrinter
+    output_printer: &dyn OutputPrinter,
 ) -> Result<(), Error> {
     let client = &client_bucket.client;
     let bucket_name = &client_bucket.bucket_name;
@@ -33,9 +33,9 @@ pub(crate) fn extract_source_key(output_printer: &dyn OutputPrinter, args: &Cli)
 }
 
 pub(crate) async fn copy_from_key_to_target(client: &Client,
-                                 bucket_name: &String,
-                                 source_key: &String,
-                                 target_key: &String) -> Result<(), Error> {
+                                            bucket_name: &String,
+                                            source_key: &String,
+                                            target_key: &String) -> Result<(), Error> {
     let source_bucket_and_object = format!("{}/{}", bucket_name, source_key);
 
     client
@@ -65,7 +65,7 @@ pub(crate) fn extract_target_key(output_printer: &dyn OutputPrinter, args: &Cli)
 
 pub(crate) async fn move_object(
     client_bucket: &ClientBucket,
-    output_printer: &dyn OutputPrinter
+    output_printer: &dyn OutputPrinter,
 ) -> Result<(), Error> {
     let args = &client_bucket.args;
     match copy_object(client_bucket, output_printer).await {
@@ -81,13 +81,12 @@ pub(crate) async fn move_object(
     Ok(())
 }
 
-pub(crate) async fn copy_multiple_process_obj(client_bucket: &ClientBucket,
-                     obj: Object,
-                     output_printer: &dyn OutputPrinter) {
-    let target_key_folder = extract_target_key(output_printer, &client_bucket.args);
-    let source_key = obj.key().unwrap().to_string();
-    let source_key_file = source_key.split("/").last().unwrap();
-    let target_key = format!("{}/{}", target_key_folder, source_key_file);
+pub(crate) async fn copy_multiple_process_obj(
+    client_bucket: &ClientBucket,
+    obj: Object,
+    output_printer: &dyn OutputPrinter,
+) {
+    let (source_key, target_key) = extract_source_target_keys(&client_bucket, obj, output_printer);
     let res = copy_from_key_to_target(&client_bucket.client, &client_bucket.bucket_name,
                                       &source_key, &target_key).await;
     match res {
@@ -96,9 +95,41 @@ pub(crate) async fn copy_multiple_process_obj(client_bucket: &ClientBucket,
                                              source_key, target_key).as_str());
         }
         Err(e) => {
-            output_printer.err_output(format!("Failed to copy {} to {}",
-                                              source_key, target_key).as_str());
-            output_printer.err_output(format!("Error {:?}", e).as_str());
+            handle_copy_error(output_printer, source_key, target_key, e);
+        }
+    }
+}
+
+fn handle_copy_error(output_printer: &dyn OutputPrinter, source_key: String, target_key: String, e: Error) {
+    output_printer.err_output(format!("Failed to copy {} to {}",
+                                      source_key, target_key).as_str());
+    output_printer.err_output(format!("Error {:?}", e).as_str());
+}
+
+fn extract_source_target_keys(client_bucket: &&ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) -> (String, String) {
+    let target_key_folder = extract_target_key(output_printer, &client_bucket.args);
+    let source_key = obj.key().unwrap().to_string();
+    let source_key_file = source_key.split("/").last().unwrap();
+    let target_key = format!("{}/{}", target_key_folder, source_key_file);
+    (source_key, target_key)
+}
+
+pub(crate) async fn move_multiple_process_obj(
+    client_bucket: &ClientBucket,
+    obj: Object,
+    output_printer: &dyn OutputPrinter,
+) {
+    let (source_key, target_key) = extract_source_target_keys(&client_bucket, obj, output_printer);
+    let res = copy_from_key_to_target(&client_bucket.client, &client_bucket.bucket_name,
+                                      &source_key, &target_key).await;
+    match res {
+        Ok(_) => {
+            output_printer.ok_output(format!("Copied {} to {}",
+                                             source_key, target_key).as_str());
+            delete_object(&client_bucket, source_key.as_str(), output_printer).await;
+        }
+        Err(e) => {
+            handle_copy_error(output_printer, source_key, target_key, e);
         }
     }
 }

@@ -9,6 +9,7 @@ Simple binary programme list AWS files with regular expressions that can perform
 - Download files
 - Delete files
 - Copy multiple files to target folder
+- Move multiple files to target folder
 - Copy single file
 - Move single file
 
@@ -38,6 +39,13 @@ data\*.txt --target-folder folder_test_gil
 USAGE:
     aws_client.exe [OPTIONS] --region <REGION> --bucket <BUCKET> --mode <MODE>
 
+
+    -t, --target-folder <TARGET_FOLDER>
+            The key prefix in S3 (something like the target folder) This is also the target folder
+            for download
+
+        --target-key <TARGET_KEY>
+            Target key for copy or move operations
 OPTIONS:
     -a, --asc <ASC>
             Used to sort either in ascending or descending order
@@ -58,7 +66,7 @@ OPTIONS:
             The operation mode
 
             [possible values: list, upload, download, delete, copy-single, move-single,
-            copy-multiple]
+            copy-multiple, move-multiple]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -75,6 +83,7 @@ OPTIONS:
 
         --target-key <TARGET_KEY>
             Target key for copy or move operations
+
 
 ```
 

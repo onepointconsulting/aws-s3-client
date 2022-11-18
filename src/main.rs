@@ -10,17 +10,18 @@ use aws_sdk_s3::{Client, Error, Region};
 use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
+use Operation::{MoveSingle, CopySingle, MoveMultiple, CopyMultiple, Delete, Download, Upload, List,
+                ListBuckets};
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
-use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_object};
+use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_multiple_process_obj, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
-use crate::list_objects::list_objects;
-
-use self::glob::glob;
+use crate::list_objects::{list_buckets, list_objects};
+use crate::upload_files::upload_files_operation;
 
 mod cli;
 mod output_printer;
@@ -30,19 +31,15 @@ mod client_bucket;
 mod file_delete;
 mod list_objects;
 mod copy_operations;
+mod upload_files;
 
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
-    let (_, client) = setup(&args).await;
+    let (region, client) = setup(&args).await;
     let mode = args.mode;
-    let bucket = args.bucket.clone();
-    println!("Bucket: {}", bucket);
-    if env::var("AWS_ACCESS_KEY_ID").is_ok() {
-        println!("AWS_ACCESS_KEY_ID: {}", env::var("AWS_ACCESS_KEY_ID").expect("Please provide the ASW_ACCESS_KEY"));
-        println!("AWS_SECRET_ACCESS_KEY: {}", env::var("AWS_SECRET_ACCESS_KEY").expect("Please provide the AWS_SECRET_ACCESS_KEY"));
-    }
-    println!("");
+    let bucket_option = args.bucket.clone();
+    let bucket_exists = !bucket_option.is_none();
 
     let default_sep = ",".to_string();
     let sep = match &args.sep {
@@ -51,97 +48,92 @@ async fn main() {
     };
     let output_printer = DefaultPrinter { sep: sep.to_string() };
 
-    let client_bucket = &ClientBucket::new(client, bucket, args.clone());
-    match mode {
-        Operation::List => {
-            async fn process_obj(_: &ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) {
-                output_printer.output_with_stats(&obj);
-            }
+    if env::var("AWS_ACCESS_KEY_ID").is_ok() {
+        output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: {}", env::var("AWS_ACCESS_KEY_ID")
+            .expect("Please provide the ASW_ACCESS_KEY")).as_str());
+        output_printer.ok_output(format!("AWS_SECRET_ACCESS_KEY: {}", env::var("AWS_SECRET_ACCESS_KEY")
+            .expect("Please provide the AWS_SECRET_ACCESS_KEY")).as_str());
+    }
 
-            let res = list_objects(client_bucket, &output_printer, process_obj).await;
+    if bucket_exists {
+        let bucket = bucket_option.unwrap();
+
+        output_printer.ok_output(format!("Bucket: {}", bucket).as_str());
+        output_printer.ok_output("");
+
+        let client_bucket = &ClientBucket::new(client, bucket, args.clone());
+        match mode {
+            List => {
+                async fn process_obj(_: &ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) {
+                    output_printer.output_with_stats(&obj);
+                }
+
+                let res = list_objects(client_bucket, &output_printer, process_obj).await;
+                match res {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("Could not list bucket: {}", e);
+                    }
+                }
+            }
+            Upload => {
+                let glob_pattern = &args.glob_pattern.clone();
+                match glob_pattern {
+                    Some(pattern) => {
+                        upload_files_operation(pattern, client_bucket, &output_printer).await;
+                    }
+                    None => {
+                        println!("Error: please enter a glob pattern, like e.g: *.csv");
+                    }
+                }
+            }
+            Download => {
+                async fn process_obj(client_bucket: &ClientBucket,
+                                     obj: Object,
+                                     output_printer: &dyn OutputPrinter) {
+                    download_object(client_bucket, obj.key().unwrap(), output_printer).await
+                }
+                let _ = list_objects(client_bucket,
+                                     &output_printer,
+                                     process_obj).await;
+            }
+            Delete => {
+                async fn process_obj(client_bucket: &ClientBucket,
+                                     obj: Object,
+                                     output_printer: &dyn OutputPrinter) {
+                    delete_object(client_bucket, obj.key().unwrap(), output_printer).await
+                }
+                let _ = list_objects(client_bucket,
+                                     &output_printer,
+                                     process_obj).await;
+            }
+            CopyMultiple => {
+                let _ = list_objects(client_bucket,
+                                     &output_printer,
+                                     copy_multiple_process_obj).await;
+            }
+            MoveMultiple => {
+                let _ = list_objects(client_bucket,
+                                     &output_printer,
+                                     move_multiple_process_obj).await;
+            }
+            CopySingle => {
+                let _ = copy_object(client_bucket, &output_printer).await;
+            }
+            MoveSingle => {
+                let _ = move_object(client_bucket, &output_printer).await;
+            }
+            _ => {}
+        }
+    } else {
+        if let ListBuckets = mode {
+            let res = list_buckets(&client, &output_printer, Some(region)).await;
             match res {
                 Ok(_) => {}
                 Err(e) => {
-                    println!("Could not list bucket: {}", e);
+                    output_printer.err_output(format!("Failed to list buckets {:?}", e).as_str());
                 }
             }
-        }
-        Operation::Upload => {
-            let glob_pattern = &args.glob_pattern.clone();
-            match glob_pattern {
-                Some(pattern) => {
-                    upload_files(pattern, client_bucket, &output_printer).await;
-                }
-                None => {
-                    println!("Error: please enter a glob pattern, like e.g: *.csv");
-                }
-            }
-        }
-        Operation::Download => {
-            async fn process_obj(client_bucket: &ClientBucket,
-                                 obj: Object,
-                                 output_printer: &dyn OutputPrinter) {
-                download_object(client_bucket, obj.key().unwrap(), output_printer).await
-            }
-            let _ = list_objects(client_bucket,
-                                 &output_printer,
-                                 process_obj).await;
-        }
-        Operation::Delete => {
-            async fn process_obj(client_bucket: &ClientBucket,
-                                 obj: Object,
-                                 output_printer: &dyn OutputPrinter) {
-                delete_object(client_bucket, obj.key().unwrap(), output_printer).await
-            }
-            let _ = list_objects(client_bucket,
-                                 &output_printer,
-                                 process_obj).await;
-        }
-        Operation::CopyMultiple => {
-            let _ = list_objects(client_bucket,
-                                 &output_printer,
-                                 copy_multiple_process_obj).await;
-        }
-        Operation::CopySingle => {
-            let _ = copy_object(client_bucket, &output_printer).await;
-        }
-        Operation::MoveSingle => {
-            let _ = move_object(client_bucket, &output_printer).await;
-        }
-    }
-}
-
-async fn upload_files(glob_pattern: &String, client_bucket: &ClientBucket, output_printer: & dyn OutputPrinter) {
-    let expected = format!("Failed to read glob pattern {}", glob_pattern);
-    let target_folder = &client_bucket.args.target_folder;
-    let bucket_name = &client_bucket.bucket_name;
-    match target_folder {
-        Some(tf) => {
-            for entry in glob(glob_pattern).expect(&expected) {
-                match entry {
-                    Ok(path) => {
-                        let file_name = path.file_name().unwrap();
-                        let key = format!("{}/{}", tf, file_name.to_str().unwrap());
-                        let file_str = path.to_str().unwrap();
-                        output_printer.ok_output(format!("Uploading {} to {}", file_str, key).as_str());
-                        let res = upload_object(&client_bucket.client,
-                                                bucket_name.as_str(),
-                                                file_str, key.as_str()).await;
-                        match res {
-                            Ok(_) => {
-                                output_printer.ok_output(format!("Upload successful: {}", key).as_str());
-                            }
-                            Err(e) => {
-                                output_printer.err_output(format!("Could not upload: {}", e).as_str());
-                            }
-                        }
-                    }
-                    Err(_) => {}
-                }
-            }
-        }
-        None => {
-            output_printer.err_output("Please specify the target folder");
         }
     }
 }

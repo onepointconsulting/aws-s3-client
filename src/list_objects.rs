@@ -1,8 +1,11 @@
-use aws_sdk_s3::Error;
 use std::future::Future;
+
+use aws_sdk_s3::Client;
+use aws_sdk_s3::Error;
 use aws_sdk_s3::model::Object;
 use fancy_regex::Regex;
-use crate::{ClientBucket, OutputPrinter, ResultSorter};
+
+use crate::{ClientBucket, OutputPrinter, Region, ResultSorter};
 
 fn find_regex(content: &str, search_filter: &Regex) -> i32 {
     let result = search_filter.find(content);
@@ -53,6 +56,22 @@ pub(crate) async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
 
     for obj in result_sorter.get_sorted().iter() {
         process_obj(client_bucket, obj.clone(), output_printer).await;
+    }
+
+    Ok(())
+}
+
+pub(crate) async fn list_buckets(client: &Client, output_printer: &dyn OutputPrinter, region_option: Option<Region>)
+                                 -> Result<(), Error> {
+    let resp = client.list_buckets().send().await?;
+    let buckets = resp.buckets().unwrap_or_default();
+    let num_buckets = buckets.len();
+
+    if region_option.is_some() {
+        let region = region_option.unwrap();
+        output_printer.ok_output("TBD");
+    } else {
+        output_printer.ok_output(format!("There are a total of {} buckets", num_buckets).as_str());
     }
 
     Ok(())

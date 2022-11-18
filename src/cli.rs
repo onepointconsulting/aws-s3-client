@@ -9,7 +9,9 @@ pub(crate) enum Operation {
     Delete,
     CopySingle,
     MoveSingle,
-    CopyMultiple
+    CopyMultiple,
+    MoveMultiple,
+    ListBuckets
 }
 
 /**
@@ -36,7 +38,7 @@ pub(crate) struct Cli {
 
     /// The bucket in S3
     #[clap(short, long)]
-    pub(crate) bucket: String,
+    pub(crate) bucket: Option<String>,
 
     /// The key prefix in S3 (something like the target folder)
     /// This is also the target folder for download
@@ -51,7 +53,7 @@ pub(crate) struct Cli {
     #[clap(short, long, value_name = ",")]
     pub(crate) sep: Option<String>,
 
-    /// Used to sort either in ascending or descending order.
+    /// Used to sort either in ascending or descending order for all operations that list files on S3.
     #[clap(short, long)]
     pub(crate) asc: Option<bool>,
 
@@ -61,7 +63,11 @@ pub(crate) struct Cli {
 
     /// Target key for copy or move operations
     #[clap(long)]
-    pub(crate) target_key: Option<String>
+    pub(crate) target_key: Option<String>,
+
+    /// Used to upload files to a flat or otherwise recursive structure.
+    #[clap(long, short, action)]
+    pub(crate) flatten: bool,
 
 
 }
