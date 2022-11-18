@@ -69,5 +69,8 @@ pub(crate) struct Cli {
     #[clap(long, short, action)]
     pub(crate) flatten: bool,
 
+    /// Used to filter buckets strictly
+    #[clap(long, action)]
+    pub(crate) strict_bucket: bool,
 
 }

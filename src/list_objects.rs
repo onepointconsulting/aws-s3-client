@@ -61,18 +61,42 @@ pub(crate) async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
     Ok(())
 }
 
-pub(crate) async fn list_buckets(client: &Client, output_printer: &dyn OutputPrinter, region_option: Option<Region>)
+pub(crate) async fn list_buckets(client: &Client,
+                                 output_printer: &dyn OutputPrinter,
+                                 region: Region,
+                                 strict: bool)
                                  -> Result<(), Error> {
     let resp = client.list_buckets().send().await?;
     let buckets = resp.buckets().unwrap_or_default();
+    let region_name = region.as_ref();
+    let mut in_region = 0;
     let num_buckets = buckets.len();
 
-    if region_option.is_some() {
-        let region = region_option.unwrap();
-        output_printer.ok_output("TBD");
+    for bucket in buckets {
+        if strict {
+            let r = client
+                .get_bucket_location()
+                .bucket(bucket.name().unwrap_or_default())
+                .send()
+                .await?;
+            if r.location_constraint().unwrap().as_ref() == region_name {
+                output_printer.ok_output(format!("{}", bucket.name().unwrap_or_default()).as_str());
+                in_region += 1;
+            }
+        } else {
+            output_printer.ok_output(format!("{}", bucket.name().unwrap_or_default()).as_str());
+        }
+    }
+
+    if strict {
+        output_printer.ok_output(
+            format!("Found {} buckets in the {} region out of a total of {} buckets.",
+            in_region, region, num_buckets).as_str()
+        );
     } else {
         output_printer.ok_output(format!("There are a total of {} buckets", num_buckets).as_str());
     }
+
 
     Ok(())
 }

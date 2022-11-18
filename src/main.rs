@@ -53,6 +53,7 @@ async fn main() {
             .expect("Please provide the ASW_ACCESS_KEY")).as_str());
         output_printer.ok_output(format!("AWS_SECRET_ACCESS_KEY: {}", env::var("AWS_SECRET_ACCESS_KEY")
             .expect("Please provide the AWS_SECRET_ACCESS_KEY")).as_str());
+        output_printer.ok_output("");
     }
 
     if bucket_exists {
@@ -127,7 +128,7 @@ async fn main() {
         }
     } else {
         if let ListBuckets = mode {
-            let res = list_buckets(&client, &output_printer, Some(region)).await;
+            let res = list_buckets(&client, &output_printer, region, args.strict_bucket).await;
             match res {
                 Ok(_) => {}
                 Err(e) => {
@@ -159,7 +160,6 @@ pub async fn upload_object(
 
 async fn setup(args: &Cli) -> (Region, Client) {
     let region = &args.region;
-    println!("Region: {}", region);
     let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()));
     let region = region_provider.region().await.unwrap();
     let shared_config = aws_config::from_env().region(region_provider).load().await;

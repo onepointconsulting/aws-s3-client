@@ -12,6 +12,7 @@ Simple binary programme list AWS files with regular expressions that can perform
 - Move multiple files to target folder
 - Copy single file
 - Move single file
+- List buckets
 
 ## Examples
 
@@ -26,7 +27,6 @@ cargo build -r
 ## Instructions
 
 ```
-aws_client 
 Simple binary programme list AWS files with regular expressions and also upload local files to AWS
 S3.
 
@@ -37,21 +37,18 @@ Example 2: aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-pr
 data\*.txt --target-folder folder_test_gil
 
 USAGE:
-    aws_client.exe [OPTIONS] --region <REGION> --bucket <BUCKET> --mode <MODE>
+    aws_client.exe [OPTIONS] --region <REGION> --mode <MODE>
 
-
-    -t, --target-folder <TARGET_FOLDER>
-            The key prefix in S3 (something like the target folder) This is also the target folder
-            for download
-
-        --target-key <TARGET_KEY>
-            Target key for copy or move operations
 OPTIONS:
     -a, --asc <ASC>
-            Used to sort either in ascending or descending order
+            Used to sort either in ascending or descending order for all operations that list files
+            on S3
 
     -b, --bucket <BUCKET>
             The bucket in S3
+
+    -f, --flatten
+            Used to upload files to a flat or otherwise recursive structure
 
     -g, --glob-pattern <*>
             The glob pattern used to list files, e.g. *.zip or /media/**/*.csv to be uploaded
@@ -66,7 +63,7 @@ OPTIONS:
             The operation mode
 
             [possible values: list, upload, download, delete, copy-single, move-single,
-            copy-multiple, move-multiple]
+            copy-multiple, move-multiple, list-buckets]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -77,13 +74,15 @@ OPTIONS:
         --source-key <SOURCE_KEY>
             Source key for copy or move operations
 
+        --strict-bucket
+            Used to filter buckets strictly
+
     -t, --target-folder <TARGET_FOLDER>
             The key prefix in S3 (something like the target folder) This is also the target folder
             for download
 
         --target-key <TARGET_KEY>
             Target key for copy or move operations
-
 
 ```
 
@@ -111,4 +110,10 @@ aws_client.exe --region eu-central-1 --mode delete --bucket mdm-eu-prod-republis
 
 ```powershell
 aws_client.exe --region eu-central-1 --mode copy-multiple --bucket mdm-eu-prod-republish -l ^.*folder3.+ --target-key folder3_copy
+```
+
+- List Buckets
+
+```powershell
+target\debug\aws_client.exe --mode list-buckets --region eu-central-1
 ```
