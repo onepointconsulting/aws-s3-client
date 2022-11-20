@@ -11,7 +11,8 @@ use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
 use Operation::{MoveSingle, CopySingle, MoveMultiple, CopyMultiple, Delete, Download, Upload, List,
-                ListBuckets};
+                ListBuckets, CreateBucket, DeleteBucket};
+use crate::bucket_operations::{create_bucket, delete_bucket, list_buckets};
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
@@ -20,7 +21,7 @@ use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
-use crate::list_objects::{list_buckets, list_objects};
+use crate::list_objects::{list_objects};
 use crate::upload_files::upload_files_operation;
 
 mod cli;
@@ -32,6 +33,7 @@ mod file_delete;
 mod list_objects;
 mod copy_operations;
 mod upload_files;
+mod bucket_operations;
 
 #[tokio::main]
 async fn main() {
@@ -51,8 +53,10 @@ async fn main() {
     if env::var("AWS_ACCESS_KEY_ID").is_ok() {
         output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: {}", env::var("AWS_ACCESS_KEY_ID")
             .expect("Please provide the ASW_ACCESS_KEY")).as_str());
-        output_printer.ok_output(format!("AWS_SECRET_ACCESS_KEY: {}", env::var("AWS_SECRET_ACCESS_KEY")
-            .expect("Please provide the AWS_SECRET_ACCESS_KEY")).as_str());
+        env::var("AWS_SECRET_ACCESS_KEY")
+            .expect("Please provide the AWS_SECRET_ACCESS_KEY as environment variable");
+        let result = "*********************************";
+        output_printer.ok_output(format!("AWS_SECRET_ACCESS_KEY: {}", result).as_str());
         output_printer.ok_output("");
     }
 
@@ -123,6 +127,12 @@ async fn main() {
             }
             MoveSingle => {
                 let _ = move_object(client_bucket, &output_printer).await;
+            }
+            CreateBucket => {
+                create_bucket(client_bucket, &output_printer).await;
+            }
+            DeleteBucket => {
+                delete_bucket(client_bucket, &output_printer).await;
             }
             _ => {}
         }

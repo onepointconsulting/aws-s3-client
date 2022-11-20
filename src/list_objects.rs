@@ -1,11 +1,10 @@
 use std::future::Future;
 
-use aws_sdk_s3::Client;
 use aws_sdk_s3::Error;
 use aws_sdk_s3::model::Object;
 use fancy_regex::Regex;
 
-use crate::{ClientBucket, OutputPrinter, Region, ResultSorter};
+use crate::{ClientBucket, OutputPrinter, ResultSorter};
 
 fn find_regex(content: &str, search_filter: &Regex) -> i32 {
     let result = search_filter.find(content);
@@ -57,46 +56,6 @@ pub(crate) async fn list_objects<'a, F, Fut>(client_bucket: &'a ClientBucket,
     for obj in result_sorter.get_sorted().iter() {
         process_obj(client_bucket, obj.clone(), output_printer).await;
     }
-
-    Ok(())
-}
-
-pub(crate) async fn list_buckets(client: &Client,
-                                 output_printer: &dyn OutputPrinter,
-                                 region: Region,
-                                 strict: bool)
-                                 -> Result<(), Error> {
-    let resp = client.list_buckets().send().await?;
-    let buckets = resp.buckets().unwrap_or_default();
-    let region_name = region.as_ref();
-    let mut in_region = 0;
-    let num_buckets = buckets.len();
-
-    for bucket in buckets {
-        if strict {
-            let r = client
-                .get_bucket_location()
-                .bucket(bucket.name().unwrap_or_default())
-                .send()
-                .await?;
-            if r.location_constraint().unwrap().as_ref() == region_name {
-                output_printer.ok_output(format!("{}", bucket.name().unwrap_or_default()).as_str());
-                in_region += 1;
-            }
-        } else {
-            output_printer.ok_output(format!("{}", bucket.name().unwrap_or_default()).as_str());
-        }
-    }
-
-    if strict {
-        output_printer.ok_output(
-            format!("Found {} buckets in the {} region out of a total of {} buckets.",
-            in_region, region, num_buckets).as_str()
-        );
-    } else {
-        output_printer.ok_output(format!("There are a total of {} buckets", num_buckets).as_str());
-    }
-
 
     Ok(())
 }

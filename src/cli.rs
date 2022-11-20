@@ -11,7 +11,9 @@ pub(crate) enum Operation {
     MoveSingle,
     CopyMultiple,
     MoveMultiple,
-    ListBuckets
+    ListBuckets,
+    CreateBucket,
+    DeleteBucket
 }
 
 /**
