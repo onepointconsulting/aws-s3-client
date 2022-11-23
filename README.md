@@ -13,6 +13,10 @@ Simple binary programme list AWS files with regular expressions that can perform
 - Copy single file
 - Move single file
 - List buckets
+- Create single bucket
+- Delete single bucket
+
+This library requires that `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are accessible in some form. 
 
 ## Examples
 
@@ -63,7 +67,7 @@ OPTIONS:
             The operation mode
 
             [possible values: list, upload, download, delete, copy-single, move-single,
-            copy-multiple, move-multiple, list-buckets]
+            copy-multiple, move-multiple, list-buckets, create-bucket, delete-bucket]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -97,7 +101,7 @@ aws_client.exe --region eu-central-1 --mode list --bucket mdm-eu-prod-republish 
 - Upload files
 
 ```powershell
-aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-prod-republish -g data\*.txt --target-folder folder_test_gil
+aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-prod-republish -g data\*.txt --target-folder folder_test_gil --flatten
 ```
 
 - Delete remote files
