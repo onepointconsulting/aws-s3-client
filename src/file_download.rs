@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
-use aws_smithy_http::byte_stream::{AggregatedBytes, Error};
+use aws_smithy_http::byte_stream::{AggregatedBytes};
 
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;

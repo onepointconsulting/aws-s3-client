@@ -17,7 +17,7 @@ pub(crate) enum Operation {
 }
 
 /**
-Simple binary programme list AWS files with regular expressions and also upload local files to AWS S3.
+Simple binary programme list AWS files with regular expressions and also upload and download files to and from AWS S3.
 
 Example 1: aws_client.exe --region "eu-central-1" --mode list --bucket mdm-eu-dev-drools --list-regex-pattern "^.*be.+jar$"
 

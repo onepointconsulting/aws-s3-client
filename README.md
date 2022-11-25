@@ -5,8 +5,8 @@
 Simple binary programme list AWS files with regular expressions that can perform the following operations on AWS S3:
 
 - List files using regular expression filters
-- Upload files
-- Download files
+- Upload files with flatten or recursive mode
+- Download files with flatten or recursive mode
 - Delete files
 - Copy multiple files to target folder
 - Move multiple files to target folder
@@ -28,11 +28,14 @@ Please check the [examples](examples) folder in this project.
 cargo build -r
 ```
 
+Please note that for Windows you will need rc.exe from the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) in your classpath 
+so that you can successfully build the executable.
+
 ## Instructions
 
 ```
-Simple binary programme list AWS files with regular expressions and also upload local files to AWS
-S3.
+Simple binary programme list AWS files with regular expressions and also upload and download files
+to and from AWS S3.
 
 Example 1: aws_client.exe --region "eu-central-1" --mode list --bucket mdm-eu-dev-drools
 --list-regex-pattern "^.*be.+jar$"
@@ -65,7 +68,7 @@ OPTIONS:
 
     -m, --mode <MODE>
             The operation mode
-
+            
             [possible values: list, upload, download, delete, copy-single, move-single,
             copy-multiple, move-multiple, list-buckets, create-bucket, delete-bucket]
 
