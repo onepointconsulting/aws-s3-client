@@ -34,6 +34,7 @@ mod list_objects;
 mod copy_operations;
 mod upload_files;
 mod bucket_operations;
+mod date_utils;
 
 #[tokio::main]
 async fn main() {

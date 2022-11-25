@@ -1,6 +1,5 @@
 use aws_sdk_s3::model::Object;
-use aws_sdk_s3::types::DateTime;
-use chrono::NaiveDateTime;
+use crate::date_utils::convert_date_time;
 
 pub(crate) trait OutputPrinter {
     fn output_with_stats(&self, obj: &Object);
@@ -17,8 +16,7 @@ impl OutputPrinter for DefaultPrinter {
         let key_str = obj.key().unwrap();
         let size = obj.size();
         let last_modified = obj.last_modified();
-        let last_modified_date_time: &DateTime = last_modified.unwrap();
-        let d = NaiveDateTime::from_timestamp(last_modified_date_time.secs(), 0);
+        let d = convert_date_time(last_modified);
         println!("{}{}{:?}{}{} Kb", key_str, self.sep, d, self.sep, size / 1024);
     }
 

@@ -9,6 +9,7 @@ use aws_sdk_s3::model::{BucketLocationConstraint, CreateBucketConfiguration};
 use aws_sdk_s3::output::DeleteBucketOutput;
 use aws_smithy_http::result::SdkError;
 use crate::{ClientBucket, OutputPrinter};
+use crate::date_utils::convert_date_time;
 
 pub(crate) async fn list_buckets(client: &Client,
                                  output_printer: &dyn OutputPrinter,
@@ -22,6 +23,7 @@ pub(crate) async fn list_buckets(client: &Client,
     let num_buckets = buckets.len();
 
     for bucket in buckets {
+        let creation_date = convert_date_time(bucket.creation_date());
         if strict {
             let r = client
                 .get_bucket_location()
@@ -29,12 +31,16 @@ pub(crate) async fn list_buckets(client: &Client,
                 .send()
                 .await?;
             if r.location_constraint().unwrap().as_ref() == region_name {
-                output_printer.ok_output(format!("{},{}",
-                                                 bucket.name().unwrap_or_default(), region_name).as_str());
+                output_printer.ok_output(format!("{},{},{}",
+                                                 bucket.name().unwrap_or_default(),
+                                                 region_name,
+                                                 creation_date).as_str());
                 in_region += 1;
             }
         } else {
-            output_printer.ok_output(format!("{}", bucket.name().unwrap_or_default()).as_str());
+            output_printer.ok_output(format!("{},{}",
+                                             bucket.name().unwrap_or_default(),
+                                             creation_date).as_str());
         }
     }
 
