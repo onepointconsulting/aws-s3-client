@@ -13,7 +13,8 @@ pub(crate) enum Operation {
     MoveMultiple,
     ListBuckets,
     CreateBucket,
-    DeleteBucket
+    DeleteBucket,
+    CopyBucketToBucket
 }
 
 /**
@@ -41,6 +42,10 @@ pub(crate) struct Cli {
     /// The bucket in S3
     #[clap(short, long)]
     pub(crate) bucket: Option<String>,
+
+    /// The target bucket in S3 for operations between buckets
+    #[clap(long)]
+    pub(crate) target_bucket: Option<String>,
 
     /// The key prefix in S3 (something like the target folder)
     /// This is also the target folder for download

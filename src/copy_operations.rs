@@ -13,11 +13,20 @@ pub(crate) async fn copy_object(
 
     let target_key = extract_target_key(output_printer, args);
 
-    copy_from_key_to_target(client, bucket_name, &source_key, &target_key).await?;
+    let res = copy_from_key_to_target(client, bucket_name, &source_key, &target_key).await;
 
-    output_printer.ok_output(format!("Successfully copied {} to {}", source_key, target_key).as_str());
+    match res {
+        Ok(()) => {
+            output_printer.ok_output(format!("Successfully copied {} to {}", source_key, target_key).as_str());
+            Ok(())
+        }
+        Err(e) => {
+            output_printer.err_output(format!("Failed to copy {} to {} due to {:?}",
+                                              source_key, target_key, e).as_str());
+            Err(e)
+        }
+    }
 
-    Ok(())
 }
 
 pub(crate) fn extract_source_key(output_printer: &dyn OutputPrinter, args: &Cli) -> String {

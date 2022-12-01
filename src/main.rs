@@ -11,8 +11,8 @@ use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
 use Operation::{MoveSingle, CopySingle, MoveMultiple, CopyMultiple, Delete, Download, Upload, List,
-                ListBuckets, CreateBucket, DeleteBucket};
-use crate::bucket_operations::{create_bucket, delete_bucket, list_buckets};
+                ListBuckets, CreateBucket, DeleteBucket, CopyBucketToBucket};
+use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
 
 use crate::cli::{Cli, Operation};
 use crate::client_bucket::ClientBucket;
@@ -52,7 +52,7 @@ async fn main() {
     let output_printer = DefaultPrinter { sep: sep.to_string() };
 
     if env::var("AWS_ACCESS_KEY_ID").is_ok() {
-        output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: {}", env::var("AWS_ACCESS_KEY_ID")
+        output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: '{}'", env::var("AWS_ACCESS_KEY_ID")
             .expect("Please provide the ASW_ACCESS_KEY")).as_str());
         env::var("AWS_SECRET_ACCESS_KEY")
             .expect("Please provide the AWS_SECRET_ACCESS_KEY as environment variable");
@@ -134,6 +134,10 @@ async fn main() {
             }
             DeleteBucket => {
                 delete_bucket(client_bucket, &output_printer).await;
+            }
+            CopyBucketToBucket => {
+                copy_to_bucket(client_bucket,
+                               &output_printer).await;
             }
             _ => {}
         }

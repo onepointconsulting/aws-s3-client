@@ -1,13 +1,15 @@
 use core::fmt::Debug;
-use aws_sdk_s3::client::Client;
 use core::result::Result;
 use core::result::Result::Ok;
-use aws_sdk_s3::Region;
+
+use aws_sdk_s3::client::Client;
 use aws_sdk_s3::Error;
 use aws_sdk_s3::error::DeleteBucketError;
 use aws_sdk_s3::model::{BucketLocationConstraint, CreateBucketConfiguration};
 use aws_sdk_s3::output::DeleteBucketOutput;
+use aws_sdk_s3::Region;
 use aws_smithy_http::result::SdkError;
+
 use crate::{ClientBucket, OutputPrinter};
 use crate::date_utils::convert_date_time;
 
@@ -91,6 +93,42 @@ fn print_message<O, E>(res: Result<O, SdkError<E>>,
         }
         Err(e) => {
             output_printer.err_output(format!("{}: {:?}", message2, e).as_str());
+        }
+    }
+}
+
+pub(crate) async fn copy_to_bucket(client_bucket: &ClientBucket,
+                                   output_printer: &dyn OutputPrinter) {
+    let source_bucket = &client_bucket.args.bucket.as_ref()
+        .expect("Source bucket is missing. Please specify the source bucket.");
+    let target_bucket = &client_bucket.args.target_bucket.as_ref()
+        .expect("Target bucket is missing. Please specify the target bucket.");
+    let source_key = &client_bucket.args.source_key.as_ref()
+        .expect("Source key is missing. Please specify the source key.");
+    let target_key = &client_bucket.args.target_key.as_ref()
+        .expect("Target key is missing. Please specify the target key.");
+    let client = &client_bucket.client;
+    let mut source_bucket_and_object = "".to_string();
+    source_bucket_and_object += source_bucket;
+    source_bucket_and_object += "/";
+    source_bucket_and_object += source_key;
+    let res = client
+        .copy_object()
+        .copy_source(source_bucket_and_object.clone())
+        .bucket(*target_bucket)
+        .key(*target_key)
+        .send()
+        .await;
+    match res {
+        Ok(_) => {
+            output_printer.ok_output(
+                format!("Copied {} to {}/{}", source_bucket_and_object, target_bucket, target_key).as_str());
+        }
+        Err(e) => {
+            output_printer.err_output(
+                format!("Failed to copy {} to {}/{}", source_bucket_and_object, target_bucket, target_key).as_str());
+            output_printer.err_output(
+                format!("Error: {:?}", e).as_str());
         }
     }
 }

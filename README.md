@@ -15,6 +15,7 @@ Simple binary programme list AWS files with regular expressions that can perform
 - List buckets
 - Create single bucket
 - Delete single bucket
+- Copy single file from one bucket to another
 
 This library requires that `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are accessible in some form. 
 
