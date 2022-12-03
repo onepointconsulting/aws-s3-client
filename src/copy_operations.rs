@@ -1,6 +1,7 @@
 use aws_sdk_s3::{Client, Error};
 use aws_sdk_s3::model::Object;
-use crate::{Cli, ClientBucket, delete_object, OutputPrinter};
+use aws_client::OutputPrinter;
+use crate::{Cli, ClientBucket, delete_object};
 
 pub(crate) async fn copy_object(
     client_bucket: &ClientBucket,

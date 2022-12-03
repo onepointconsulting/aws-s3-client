@@ -1,5 +1,5 @@
 use aws_sdk_s3::model::{Delete, ObjectIdentifier};
-use crate::OutputPrinter;
+use aws_client::OutputPrinter;
 use crate::client_bucket::ClientBucket;
 
 pub(crate) async fn delete_object(client_bucket: &ClientBucket,

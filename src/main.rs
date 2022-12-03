@@ -11,6 +11,7 @@ use aws_sdk_s3::{Client, Error, Region};
 use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
+use aws_client::{DefaultPrinter, OutputPrinter};
 use Operation::{MoveSingle, CopySingle, MoveMultiple, CopyMultiple, Delete, Download, Upload, List,
                 ListBuckets, CreateBucket, DeleteBucket, CopyBucketToBucket};
 use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
@@ -20,7 +21,6 @@ use crate::client_bucket::ClientBucket;
 use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_multiple_process_obj, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
-use crate::output_printer::{DefaultPrinter, OutputPrinter};
 use crate::result_sorter::ResultSorter;
 use crate::list_objects::{list_objects};
 use crate::upload_files::upload_files_operation;

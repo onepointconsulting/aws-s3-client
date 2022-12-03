@@ -3,8 +3,9 @@ use std::future::Future;
 use aws_sdk_s3::Error;
 use aws_sdk_s3::model::Object;
 use fancy_regex::Regex;
+use aws_client::OutputPrinter;
 
-use crate::{ClientBucket, OutputPrinter, ResultSorter};
+use crate::{ClientBucket, ResultSorter};
 
 fn find_regex(content: &str, search_filter: &Regex) -> i32 {
     let result = search_filter.find(content);

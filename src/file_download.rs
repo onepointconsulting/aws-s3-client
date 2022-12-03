@@ -4,8 +4,8 @@ use aws_smithy_http::byte_stream::{AggregatedBytes};
 
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use aws_client::OutputPrinter;
 
-use crate::OutputPrinter;
 use crate::client_bucket::ClientBucket;
 
 pub(crate) async fn download_object(client_bucket: &ClientBucket,
