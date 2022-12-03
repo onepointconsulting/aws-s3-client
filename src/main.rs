@@ -2,6 +2,7 @@ extern crate alloc;
 extern crate glob;
 extern crate core;
 
+use std::cell::RefCell;
 use std::env;
 use std::path::{Path};
 
@@ -49,7 +50,8 @@ async fn main() {
         Some(s) => s,
         None => &default_sep
     };
-    let output_printer = DefaultPrinter { sep: sep.to_string() };
+    let output_printer = DefaultPrinter { sep: sep.to_string(), success: RefCell::new(0),
+        error: RefCell::new(0) };
 
     if env::var("AWS_ACCESS_KEY_ID").is_ok() {
         output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: '{}'", env::var("AWS_ACCESS_KEY_ID")

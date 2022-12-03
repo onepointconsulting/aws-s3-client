@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use aws_sdk_s3::model::Object;
 use crate::date_utils::convert_date_time;
 
@@ -8,7 +9,9 @@ pub(crate) trait OutputPrinter {
 }
 
 pub(crate) struct DefaultPrinter {
-    pub sep: String
+    pub sep: String,
+    pub success: RefCell<u32>,
+    pub error: RefCell<u32>
 }
 
 impl OutputPrinter for DefaultPrinter {
@@ -22,9 +25,11 @@ impl OutputPrinter for DefaultPrinter {
 
     fn err_output(&self, msg: &str) {
         eprintln!("{}", msg);
+        self.error.replace(&self.error.take() + 1);
     }
 
     fn ok_output(&self, msg: &str) {
         println!("{}", msg);
+        self.success.replace(&self.success.take() + 1);
     }
 }

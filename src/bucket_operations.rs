@@ -84,15 +84,15 @@ pub(crate) async fn delete_bucket(client_bucket: &ClientBucket,
 fn print_message<O, E>(res: Result<O, SdkError<E>>,
                        bucket_name: &String,
                        output_printer: &dyn OutputPrinter,
-                       message1: &str,
-                       message2: &str)
+                       ok_message: &str,
+                       error_message: &str)
     where E: Debug {
     match res {
         Ok(_) => {
-            output_printer.ok_output(format!("Bucket {} has been {}.", bucket_name, message1).as_str());
+            output_printer.ok_output(format!("Bucket {} has been {}.", bucket_name, ok_message).as_str());
         }
         Err(e) => {
-            output_printer.err_output(format!("{}: {:?}", message2, e).as_str());
+            output_printer.err_output(format!("{}: {:?}", error_message, e).as_str());
         }
     }
 }
@@ -130,5 +130,29 @@ pub(crate) async fn copy_to_bucket(client_bucket: &ClientBucket,
             output_printer.err_output(
                 format!("Error: {:?}", e).as_str());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use aws_sdk_s3::error::DeleteBucketError;
+    use aws_smithy_http::result::SdkError;
+    use crate::bucket_operations::print_message;
+    use crate::DefaultPrinter;
+
+    use super::*;
+
+    #[test]
+    fn when_print_message_should_print_ok() {
+        let res: Result<&str, SdkError<DeleteBucketError>> = Ok("OK");
+        let bucket_name = &"test.bucket".to_string();
+        let output_printer = DefaultPrinter { sep: ",".to_string(), success: RefCell::new(0),
+            error: RefCell::new(0) };
+        let ok_message = "create";
+        let error_message = "failed to create";
+        print_message(res, bucket_name, &output_printer, ok_message, error_message);
+        assert_eq!(output_printer.success.take(), 1);
+        assert_eq!(output_printer.error.take(), 0);
     }
 }
