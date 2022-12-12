@@ -1,7 +1,7 @@
 extern crate glob;
 
-use aws_client::OutputPrinter;
-use crate::{ClientBucket, upload_object};
+use aws_client::{ClientBucket, OutputPrinter};
+use crate::upload_object;
 
 use self::glob::glob;
 

@@ -1,35 +1,35 @@
 extern crate alloc;
-extern crate glob;
 extern crate core;
+extern crate glob;
 
 use std::cell::RefCell;
-use std::env;
-use std::path::{Path};
+use std::path::Path;
 
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{Client, Error, Region};
 use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
-use aws_client::{DefaultPrinter, OutputPrinter};
-use Operation::{MoveSingle, CopySingle, MoveMultiple, CopyMultiple, Delete, Download, Upload, List,
-                ListBuckets, CreateBucket, DeleteBucket, CopyBucketToBucket};
-use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
 
-use crate::cli::{Cli, Operation};
-use crate::client_bucket::ClientBucket;
+use aws_client::{check_print_env_variables, DefaultPrinter, OutputPrinter};
+use aws_client::cli::Cli;
+use aws_client::cli::Operation;
+use aws_client::ClientBucket;
+use Operation::{CopyBucketToBucket, CopyMultiple, CopySingle, CreateBucket, Delete, DeleteBucket, Download, List,
+                ListBuckets, MoveMultiple, MoveSingle, Upload};
+
+use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
 use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_multiple_process_obj, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
+use crate::list_objects::list_objects;
 use crate::result_sorter::ResultSorter;
-use crate::list_objects::{list_objects};
 use crate::upload_files::upload_files_operation;
 
 mod cli;
 mod output_printer;
 mod result_sorter;
 mod file_download;
-mod client_bucket;
 mod file_delete;
 mod list_objects;
 mod copy_operations;
@@ -50,18 +50,13 @@ async fn main() {
         Some(s) => s,
         None => &default_sep
     };
-    let output_printer = DefaultPrinter { sep: sep.to_string(), success: RefCell::new(0),
-        error: RefCell::new(0) };
+    let output_printer = DefaultPrinter {
+        sep: sep.to_string(),
+        success: RefCell::new(0),
+        error: RefCell::new(0),
+    };
 
-    if env::var("AWS_ACCESS_KEY_ID").is_ok() {
-        output_printer.ok_output(format!("AWS_ACCESS_KEY_ID: '{}'", env::var("AWS_ACCESS_KEY_ID")
-            .expect("Please provide the ASW_ACCESS_KEY")).as_str());
-        env::var("AWS_SECRET_ACCESS_KEY")
-            .expect("Please provide the AWS_SECRET_ACCESS_KEY as environment variable");
-        let result = "*********************************";
-        output_printer.ok_output(format!("AWS_SECRET_ACCESS_KEY: {}", result).as_str());
-        output_printer.ok_output("");
-    }
+    check_print_env_variables(&output_printer);
 
     if bucket_exists {
         let bucket = bucket_option.unwrap();

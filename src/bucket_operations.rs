@@ -1,4 +1,3 @@
-use core::fmt::Debug;
 use core::result::Result;
 use core::result::Result::Ok;
 
@@ -9,10 +8,9 @@ use aws_sdk_s3::model::{BucketLocationConstraint, CreateBucketConfiguration};
 use aws_sdk_s3::output::DeleteBucketOutput;
 use aws_sdk_s3::Region;
 use aws_smithy_http::result::SdkError;
-use aws_client::OutputPrinter;
+use aws_client::{ClientBucket, OutputPrinter};
 use aws_client::print_message;
 
-use crate::{ClientBucket};
 use crate::date_utils::convert_date_time;
 
 pub(crate) async fn list_buckets(client: &Client,
@@ -67,7 +65,8 @@ pub(crate) async fn create_bucket(client_bucket: &ClientBucket,
     let bucket_name = &client_bucket.bucket_name;
     let constraint = BucketLocationConstraint::from(*region);
     let cfg = CreateBucketConfiguration::builder().location_constraint(constraint).build();
-    let res = client.create_bucket().create_bucket_configuration(cfg).bucket(bucket_name).send().await;
+    let res = client.create_bucket().create_bucket_configuration(cfg)
+        .bucket(bucket_name).send().await;
     print_message(res, bucket_name, output_printer,
                   "created",
                   "An error occurred in create bucket");

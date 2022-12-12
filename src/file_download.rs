@@ -6,7 +6,7 @@ use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use aws_client::OutputPrinter;
 
-use crate::client_bucket::ClientBucket;
+use aws_client::ClientBucket;
 
 pub(crate) async fn download_object(client_bucket: &ClientBucket,
                                     key: &str,

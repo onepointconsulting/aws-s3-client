@@ -2,7 +2,7 @@ use clap::{ArgEnum, Parser};
 
 #[derive(ArgEnum, Debug, Clone, Copy)]
 #[clap(rename_all = "kebab_case")]
-pub(crate) enum Operation {
+pub enum Operation {
     List,
     Upload,
     Download,
@@ -25,59 +25,59 @@ Example 1: aws_client.exe --region "eu-central-1" --mode list --bucket mdm-eu-de
 Example 2: aws_client.exe --region eu-central-1 --mode upload --bucket mdm-eu-prod-republish -g data\*.txt --target-folder folder_test_gil
  */
 #[derive(Parser,Clone)]
-pub(crate) struct Cli {
+pub struct Cli {
 
     /// The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
     #[clap(short, long)]
-    pub(crate) region: String,
+    pub region: String,
 
     /// The glob pattern used to list files, e.g. *.zip or /media/**/*.csv to be uploaded
     #[clap(short, long, value_name = "*")]
-    pub(crate) glob_pattern: Option<String>,
+    pub glob_pattern: Option<String>,
 
     /// The regex pattern used to filter list files, e.g. .+\.zip
     #[clap(short, long, value_name = ".+")]
-    pub(crate) list_regex_pattern: Option<String>,
+    pub list_regex_pattern: Option<String>,
 
     /// The bucket in S3
     #[clap(short, long)]
-    pub(crate) bucket: Option<String>,
+    pub bucket: Option<String>,
 
     /// The target bucket in S3 for operations between buckets
     #[clap(long)]
-    pub(crate) target_bucket: Option<String>,
+    pub target_bucket: Option<String>,
 
     /// The key prefix in S3 (something like the target folder)
     /// This is also the target folder for download
     #[clap(short, long)]
-    pub(crate) target_folder: Option<String>,
+    pub target_folder: Option<String>,
 
     /// The operation mode
     #[clap(short, long, arg_enum)]
-    pub(crate) mode: Operation,
+    pub mode: Operation,
 
     /// The separator used by the default printer
     #[clap(short, long, value_name = ",")]
-    pub(crate) sep: Option<String>,
+    pub sep: Option<String>,
 
     /// Used to sort either in ascending or descending order for all operations that list files on S3.
     #[clap(short, long)]
-    pub(crate) asc: Option<bool>,
+    pub asc: Option<bool>,
 
     /// Source key for copy or move operations
     #[clap(long)]
-    pub(crate) source_key: Option<String>,
+    pub source_key: Option<String>,
 
     /// Target key for copy or move operations
     #[clap(long)]
-    pub(crate) target_key: Option<String>,
+    pub target_key: Option<String>,
 
     /// Used to upload files to a flat or otherwise recursive structure.
     #[clap(long, short, action)]
-    pub(crate) flatten: bool,
+    pub flatten: bool,
 
     /// Used to filter buckets strictly
     #[clap(long, action)]
-    pub(crate) strict_bucket: bool,
+    pub strict_bucket: bool,
 
 }
