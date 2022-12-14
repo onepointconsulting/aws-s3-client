@@ -29,6 +29,12 @@ Please check the [examples](examples) folder in this project.
 cargo build -r
 ```
 
+## Integration Tests
+
+```ps1
+cargo test -- --color always --nocapture
+```
+
 Please note that for Windows you will need rc.exe from the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) in your classpath 
 so that you can successfully build the executable.
 

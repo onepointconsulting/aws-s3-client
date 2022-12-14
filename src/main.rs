@@ -5,8 +5,7 @@ extern crate glob;
 use std::cell::RefCell;
 use std::path::Path;
 
-use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::{Client, Error, Region};
+use aws_sdk_s3::{Client, Error};
 use aws_sdk_s3::model::Object;
 use aws_smithy_http::byte_stream::ByteStream;
 use clap::Parser;
@@ -19,6 +18,7 @@ use Operation::{CopyBucketToBucket, CopyMultiple, CopySingle, CreateBucket, Dele
                 ListBuckets, MoveMultiple, MoveSingle, Upload};
 
 use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
+use crate::client_factory::setup;
 use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_multiple_process_obj, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
@@ -36,6 +36,7 @@ mod copy_operations;
 mod upload_files;
 mod bucket_operations;
 mod date_utils;
+mod client_factory;
 
 #[tokio::main]
 async fn main() {
@@ -127,10 +128,10 @@ async fn main() {
                 let _ = move_object(client_bucket, &output_printer).await;
             }
             CreateBucket => {
-                create_bucket(client_bucket, &output_printer).await;
+                let _ = create_bucket(client_bucket, &output_printer).await;
             }
             DeleteBucket => {
-                delete_bucket(client_bucket, &output_printer).await;
+                let _ = delete_bucket(client_bucket, &output_printer).await;
             }
             CopyBucketToBucket => {
                 copy_to_bucket(client_bucket,
@@ -168,14 +169,4 @@ pub async fn upload_object(
 
     println!("Uploaded file: {}", file_name);
     Ok(())
-}
-
-async fn setup(args: &Cli) -> (Region, Client) {
-    let region = &args.region;
-    let region_provider = RegionProviderChain::first_try(Region::new(region.to_string()));
-    let region = region_provider.region().await.unwrap();
-    let shared_config = aws_config::from_env().region(region_provider).load().await;
-
-    let client = Client::new(&shared_config);
-    return (region, client);
 }

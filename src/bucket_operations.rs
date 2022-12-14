@@ -1,19 +1,19 @@
 use core::result::Result;
 use core::result::Result::Ok;
+use std::fmt::Debug;
 
 use aws_sdk_s3::client::Client;
 use aws_sdk_s3::Error;
-use aws_sdk_s3::error::DeleteBucketError;
+use aws_sdk_s3::error::{CreateBucketError, DeleteBucketError};
 use aws_sdk_s3::model::{BucketLocationConstraint, CreateBucketConfiguration};
-use aws_sdk_s3::output::DeleteBucketOutput;
+use aws_sdk_s3::output::{CreateBucketOutput, DeleteBucketOutput};
 use aws_sdk_s3::Region;
 use aws_smithy_http::result::SdkError;
-use aws_client::{ClientBucket, OutputPrinter};
-use aws_client::print_message;
 
 use crate::date_utils::convert_date_time;
+use crate::{ClientBucket, OutputPrinter};
 
-pub(crate) async fn list_buckets(client: &Client,
+pub async fn list_buckets(client: &Client,
                                  output_printer: &dyn OutputPrinter,
                                  region: Region,
                                  strict: bool)
@@ -58,8 +58,8 @@ pub(crate) async fn list_buckets(client: &Client,
     Ok(())
 }
 
-pub(crate) async fn create_bucket(client_bucket: &ClientBucket,
-                                  output_printer: &dyn OutputPrinter) {
+pub async fn create_bucket(client_bucket: &ClientBucket,
+                           output_printer: &dyn OutputPrinter) -> Result<CreateBucketOutput, SdkError<CreateBucketError>> {
     let client = &client_bucket.client;
     let region = &client_bucket.args.region.as_str();
     let bucket_name = &client_bucket.bucket_name;
@@ -67,22 +67,24 @@ pub(crate) async fn create_bucket(client_bucket: &ClientBucket,
     let cfg = CreateBucketConfiguration::builder().location_constraint(constraint).build();
     let res = client.create_bucket().create_bucket_configuration(cfg)
         .bucket(bucket_name).send().await;
-    print_message(res, bucket_name, output_printer,
+    print_message(&res, bucket_name, output_printer,
                   "created",
                   "An error occurred in create bucket");
+    res
 }
 
-pub(crate) async fn delete_bucket(client_bucket: &ClientBucket,
-                                  output_printer: &dyn OutputPrinter) {
+pub async fn delete_bucket(client_bucket: &ClientBucket,
+                           output_printer: &dyn OutputPrinter) -> Result<DeleteBucketOutput, SdkError<DeleteBucketError>> {
     let client = &client_bucket.client;
     let bucket_name = &client_bucket.bucket_name;
     let res: Result<DeleteBucketOutput, SdkError<DeleteBucketError>> = client.delete_bucket().bucket(bucket_name).send().await;
-    print_message(res, bucket_name, output_printer,
+    print_message(&res, bucket_name, output_printer,
                   "deleted",
                   "An error occurred in delete bucket");
+    res
 }
 
-pub(crate) async fn copy_to_bucket(client_bucket: &ClientBucket,
+pub async fn copy_to_bucket(client_bucket: &ClientBucket,
                                    output_printer: &dyn OutputPrinter) {
     let source_bucket = &client_bucket.args.bucket.as_ref()
         .expect("Source bucket is missing. Please specify the source bucket.");
@@ -114,6 +116,22 @@ pub(crate) async fn copy_to_bucket(client_bucket: &ClientBucket,
                 format!("Failed to copy {} to {}/{}", source_bucket_and_object, target_bucket, target_key).as_str());
             output_printer.err_output(
                 format!("Error: {:?}", e).as_str());
+        }
+    }
+}
+
+pub fn print_message<O, E>(res: &Result<O, SdkError<E>>,
+                           bucket_name: &String,
+                           output_printer: &dyn OutputPrinter,
+                           ok_message: &str,
+                           error_message: &str)
+    where E: Debug {
+    match res {
+        Ok(_) => {
+            output_printer.ok_output(format!("Bucket {} has been {}.", bucket_name, ok_message).as_str());
+        }
+        Err(e) => {
+            output_printer.err_output(format!("{}: {:?}", error_message, e).as_str());
         }
     }
 }

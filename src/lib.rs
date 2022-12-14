@@ -2,15 +2,15 @@
 
 use date_utils::convert_date_time;
 use std::cell::RefCell;
-use std::fmt::Debug;
 use aws_sdk_s3::model::Object;
-use aws_smithy_http::result::SdkError;
 use aws_sdk_s3::Client;
 use cli::Cli;
 use std::env;
 
 mod date_utils;
 pub mod cli;
+pub mod client_factory;
+pub mod bucket_operations;
 
 pub trait OutputPrinter {
     fn output_with_stats(&self, obj: &Object);
@@ -41,22 +41,6 @@ impl OutputPrinter for DefaultPrinter {
     fn ok_output(&self, msg: &str) {
         println!("{}", msg);
         self.success.replace(&self.success.take() + 1);
-    }
-}
-
-pub fn print_message<O, E>(res: Result<O, SdkError<E>>,
-                       bucket_name: &String,
-                       output_printer: &dyn OutputPrinter,
-                       ok_message: &str,
-                       error_message: &str)
-    where E: Debug {
-    match res {
-        Ok(_) => {
-            output_printer.ok_output(format!("Bucket {} has been {}.", bucket_name, ok_message).as_str());
-        }
-        Err(e) => {
-            output_printer.err_output(format!("{}: {:?}", error_message, e).as_str());
-        }
     }
 }
 
