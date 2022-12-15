@@ -15,14 +15,14 @@ use aws_client::cli::Cli;
 use aws_client::cli::Operation;
 use aws_client::ClientBucket;
 use Operation::{CopyBucketToBucket, CopyMultiple, CopySingle, CreateBucket, Delete, DeleteBucket, Download, List,
-                ListBuckets, MoveMultiple, MoveSingle, Upload};
+                ListBuckets, MoveMultiple, MoveSingle, Upload, ListObjectVersions};
 
 use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
 use crate::client_factory::setup;
 use crate::copy_operations::{copy_multiple_process_obj, copy_object, move_multiple_process_obj, move_object};
 use crate::file_delete::delete_object;
 use crate::file_download::download_object;
-use crate::list_objects::list_objects;
+use crate::list_objects::{list_object_versions, list_objects};
 use crate::result_sorter::ResultSorter;
 use crate::upload_files::upload_files_operation;
 
@@ -71,13 +71,15 @@ async fn main() {
                 async fn process_obj(_: &ClientBucket, obj: Object, output_printer: &dyn OutputPrinter) {
                     output_printer.output_with_stats(&obj);
                 }
-
                 let res = list_objects(client_bucket, &output_printer, process_obj).await;
-                match res {
-                    Ok(_) => {}
-                    Err(e) => {
-                        println!("Could not list bucket: {}", e);
-                    }
+                if res.is_err() {
+                    output_printer.err_output(format!("Could not list bucket: {:?}", res.err().unwrap()).as_str());
+                }
+            }
+            ListObjectVersions => {
+                let res = list_object_versions(client_bucket, &output_printer).await;
+                if res.is_err() {
+                    output_printer.err_output(format!("Could not list bucket versions: {:?}", res.err().unwrap()).as_str());
                 }
             }
             Upload => {

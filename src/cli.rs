@@ -4,6 +4,7 @@ use clap::{ArgEnum, Parser};
 #[clap(rename_all = "kebab_case")]
 pub enum Operation {
     List,
+    ListObjectVersions,
     Upload,
     Download,
     Delete,

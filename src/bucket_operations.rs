@@ -10,14 +10,14 @@ use aws_sdk_s3::output::{CreateBucketOutput, DeleteBucketOutput};
 use aws_sdk_s3::Region;
 use aws_smithy_http::result::SdkError;
 
-use crate::date_utils::convert_date_time;
 use crate::{ClientBucket, OutputPrinter};
+use crate::date_utils::convert_date_time;
 
 pub async fn list_buckets(client: &Client,
-                                 output_printer: &dyn OutputPrinter,
-                                 region: Region,
-                                 strict: bool)
-                                 -> Result<(), Error> {
+                          output_printer: &dyn OutputPrinter,
+                          region: Region,
+                          strict: bool)
+                          -> Result<(), Error> {
     let resp = client.list_buckets().send().await?;
     let buckets = resp.buckets().unwrap_or_default();
     let region_name = region.as_ref();
@@ -85,7 +85,7 @@ pub async fn delete_bucket(client_bucket: &ClientBucket,
 }
 
 pub async fn copy_to_bucket(client_bucket: &ClientBucket,
-                                   output_printer: &dyn OutputPrinter) {
+                            output_printer: &dyn OutputPrinter) {
     let source_bucket = &client_bucket.args.bucket.as_ref()
         .expect("Source bucket is missing. Please specify the source bucket.");
     let target_bucket = &client_bucket.args.target_bucket.as_ref()

@@ -5,6 +5,7 @@
 Simple binary programme list AWS files with regular expressions that can perform the following operations on AWS S3:
 
 - List files using regular expression filters
+- List file versions using regular expression filters
 - Upload files with flatten or recursive mode
 - Download files with flatten or recursive mode
 - Delete files
@@ -75,9 +76,10 @@ OPTIONS:
 
     -m, --mode <MODE>
             The operation mode
-            
-            [possible values: list, upload, download, delete, copy-single, move-single,
-            copy-multiple, move-multiple, list-buckets, create-bucket, delete-bucket]
+
+            [possible values: list, list-object-versions, upload, download, delete, copy-single,
+            move-single, copy-multiple, move-multiple, list-buckets, create-bucket, delete-bucket,
+            copy-bucket-to-bucket]
 
     -r, --region <REGION>
             The AWS region, like 'us-west-2', 'eu-central-1', 'eu-west-1', 'eu-west-2'
@@ -94,6 +96,9 @@ OPTIONS:
     -t, --target-folder <TARGET_FOLDER>
             The key prefix in S3 (something like the target folder) This is also the target folder
             for download
+
+        --target-bucket <TARGET_BUCKET>
+            The target bucket in S3 for operations between buckets
 
         --target-key <TARGET_KEY>
             Target key for copy or move operations
