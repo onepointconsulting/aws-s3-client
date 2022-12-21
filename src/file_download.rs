@@ -50,5 +50,5 @@ async fn write_file(key: &str, output_printer: &dyn OutputPrinter, bytes: &mut A
     let mut file = File::create(new_path.clone()).await.unwrap();
     let _ = file.write_all_buf(bytes).await;
     file.flush().await.expect("Failed to flush downloaded message");
-    output_printer.ok_output(format!("Download successfully {} to {:?}", key, new_path).as_str());
+    output_printer.ok_output(format!("Downloaded successfully {} to {:?}", key, new_path).as_str());
 }

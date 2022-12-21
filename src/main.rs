@@ -15,7 +15,7 @@ use aws_client::cli::Cli;
 use aws_client::cli::Operation;
 use aws_client::ClientBucket;
 use Operation::{CopyBucketToBucket, CopyMultiple, CopySingle, CreateBucket, Delete, DeleteBucket, Download, List,
-                ListBuckets, MoveMultiple, MoveSingle, Upload, ListObjectVersions};
+                ListBuckets, MoveMultiple, MoveSingle, Upload, ListObjectVersions, UploadLarge};
 
 use crate::bucket_operations::{copy_to_bucket, create_bucket, delete_bucket, list_buckets};
 use crate::client_factory::setup;
@@ -24,7 +24,7 @@ use crate::file_delete::delete_object;
 use crate::file_download::download_object;
 use crate::list_objects::{list_object_versions, list_objects};
 use crate::result_sorter::ResultSorter;
-use crate::upload_files::upload_files_operation;
+use crate::upload_files::{upload_file_in_chunks, upload_files_operation};
 
 mod cli;
 mod output_printer;
@@ -138,6 +138,15 @@ async fn main() {
             CopyBucketToBucket => {
                 copy_to_bucket(client_bucket,
                                &output_printer).await;
+            }
+            UploadLarge => {
+                let res = upload_file_in_chunks(client_bucket, &output_printer).await;
+                match res {
+                    Ok(()) => {}
+                    Err(e) => {
+                        output_printer.err_output(e.as_str());
+                    }
+                }
             }
             _ => {}
         }

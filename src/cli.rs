@@ -15,7 +15,8 @@ pub enum Operation {
     ListBuckets,
     CreateBucket,
     DeleteBucket,
-    CopyBucketToBucket
+    CopyBucketToBucket,
+    UploadLarge
 }
 
 /**
@@ -80,5 +81,11 @@ pub struct Cli {
     /// Used to filter buckets strictly
     #[clap(long, action)]
     pub strict_bucket: bool,
+
+    #[clap(long, value_name = "2")]
+    pub chunk_size: Option<u64>,
+
+    #[clap(long)]
+    pub upload_file: Option<String>
 
 }
